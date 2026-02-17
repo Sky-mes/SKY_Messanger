@@ -8,6 +8,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+	<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFFFFF">
     <style>
         :root { 
             --tg-blue: #3390ec; 
@@ -1767,5 +1769,12 @@
         }
         function downloadMediaFromInputSec() { const link = document.getElementById('vLinkSec').value.trim(); if(link) downloadMediaSec(link); }
     </script>
+	<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log("SKY PWA Registered!"))
+      .catch(err => console.log("Error:", err));
+  }
+</script>
 </body>
 </html>
