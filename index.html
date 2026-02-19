@@ -438,6 +438,20 @@
             </div>
             <div class="welcome-msg"></div>
         </div>
+<div id="scr-notes" class="screen">
+    <div class="settings-header">
+        <div onclick="goBackFromNotes()" style="font-size:24px; cursor:pointer;">←</div>
+        <div style="font-weight:bold;">Offline Notes (<span id="note-user-display">User</span>)</div>
+        <div></div>
+    </div>
+    <div style="padding: 20px; flex-grow: 1; overflow-y: auto;">
+        <textarea id="note-input" class="post-textarea" style="border: 1px solid #eee; padding: 10px; border-radius: 10px; height: 100px;" placeholder="ဒီမှာ Note ရေးပါ..."></textarea>
+        <button class="post-btn" style="width: 100%; margin-top: 10px;" onclick="saveMyNote()">Save Note</button>
+        
+        <h4 style="margin-top: 25px; color: var(--tg-blue);">သိမ်းထားသော Note များ</h4>
+        <div id="notes-display-area" style="margin-top: 10px;"></div>
+    </div>
+</div>
 
         <div id="scr-security" class="screen">
             <div class="settings-header">
@@ -559,7 +573,9 @@
             <div class="chat-input-bar">
                 <div id="link-loader" class="loader-ring"></div>
                 <div class="chat-input-box">
-                    <input type="text" id="chat-input-field" placeholder="Message">
+                    <input type="text" id="chat-input-field" placeholder="Message" 
+       onkeydown="if(event.key === 'Enter') { document.getElementById('send-btn').click(); }">
+
                     <input type="file" id="chat-attach-input" style="display:none;" accept="image/*" onchange="handleAttachment(this)">
                     <span onclick="document.getElementById('chat-attach-input').click()" style="cursor:pointer;">🖼️</span>
                 </div>
@@ -703,6 +719,14 @@
                 <div style="padding: 10px 15px; color: var(--tg-blue); font-size: 14px; font-weight: 500;">Contacts</div>
                 <div class="contact-list" id="main-contact-list"></div>
             </div>
+			
+
+<div class="settings-nav-item" onclick="nav('scr-notes'); loadNotesFromStorage(); toggleSidebar();">
+    <div class="nav-icon">📝</div>
+    <div class="nav-text">Offline Notes</div>
+</div>
+
+
             <div id="request-panel" class="slide-panel">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 25px;">
                     <span style="font-size: 20px; font-weight: bold;">Friend Requests</span>
@@ -1129,17 +1153,29 @@
 
         function addNewAccountAction() { toggleSidebar(); nav('scr-phone'); }
 
-        async function switchAccount(email) {
-            currentUserEmail = email;
-            localStorage.setItem("sky_logged_in", email);
-            const doc = await db.collection("users").doc(email).get();
-            if(doc.exists) {
-                const data = doc.data();
-                updateAllUI(data); loadContacts(); listenToRequests(); refreshAccountList(); listenToPosts(); listenToNotiCount();
-                showToast("🔄", "Switched Account");
-                toggleSidebar(); nav('scr-welcome');
-            }
-        }
+       async function switchAccount(email) {
+    currentUserEmail = email;
+    localStorage.setItem("sky_logged_in", email);
+    
+    const doc = await db.collection("users").doc(email).get();
+    if(doc.exists) {
+        const data = doc.data();
+        updateAllUI(data); 
+        loadContacts(); 
+        listenToRequests(); 
+        refreshAccountList(); 
+        listenToPosts(); 
+        listenToNotiCount();
+        
+        
+        loadNotesFromStorage(); 
+        
+        showToast("🔄", "Switched Account");
+        toggleSidebar(); 
+        nav('scr-welcome');
+    }
+}
+
 
         function refreshAccountList() {
             const container = document.getElementById('other-accounts'); container.innerHTML = '';
@@ -1253,12 +1289,39 @@
         });
 
         async function loginDone(email) {
-            currentUserEmail = email; localStorage.setItem("sky_logged_in", email);
-            const docRef = db.collection("users").doc(email);
-            let doc = await docRef.get();
-            if (!doc.exists) { await docRef.set({ gmail: email, phone: pendingPhone, username: "yourname", bio: "", two_step: "", created_at: new Date() }); doc = await docRef.get(); }
-            const data = doc.data(); userTwoStepPass = data.two_step || ""; saveAccountToLocal(data); updateAllUI(data); loadContacts(); listenToRequests(); refreshAccountList(); listenToPosts(); listenToNotiCount(); nav('scr-welcome'); 
-        }
+    currentUserEmail = email; 
+    localStorage.setItem("sky_logged_in", email);
+    
+    const docRef = db.collection("users").doc(email);
+    let doc = await docRef.get();
+    
+    if (!doc.exists) { 
+        await docRef.set({ 
+            gmail: email, 
+            phone: pendingPhone, 
+            username: "yourname", 
+            bio: "", 
+            two_step: "", 
+            created_at: new Date() 
+        }); 
+        doc = await docRef.get(); 
+    }
+    
+    const data = doc.data(); 
+    userTwoStepPass = data.two_step || ""; 
+    saveAccountToLocal(data); 
+    updateAllUI(data); 
+    loadContacts(); 
+    listenToRequests(); 
+    refreshAccountList(); 
+    listenToPosts(); 
+    listenToNotiCount(); 
+    
+   
+    loadNotesFromStorage(); 
+    
+    nav('scr-welcome'); 
+}
 
         function updateAllUI(d) {
             const name = d.username || "yourname";
@@ -1332,10 +1395,10 @@
 
         async function createNewContact() {
     const nameInput = document.getElementById('new-contact-name');
-    const usernameInput = document.getElementById('new-contact-username'); // ပြင်ထားသော ID
+    const usernameInput = document.getElementById('new-contact-username'); 
 
     const displayName = nameInput.value.trim(); 
-    const searchUsername = usernameInput.value.trim().replace('@', ''); // @ ပါလာရင် ဖယ်ထုတ်မယ်
+    const searchUsername = usernameInput.value.trim().replace('@', ''); 
     
     if(!displayName || !searchUsername) {
         showToast("⚠️", "Please fill all fields");
@@ -1586,11 +1649,20 @@
 
         function logout() { localStorage.clear(); location.reload(); }
         window.onload = () => { 
-            loadSavedTheme();
-            const savedEmail = localStorage.getItem("sky_logged_in"); 
-            if (savedEmail) loginDone(savedEmail); 
-            else nav('scr-1'); 
-        };
+    loadSavedTheme();
+    const savedEmail = localStorage.getItem("sky_logged_in"); 
+    
+    
+    if (!navigator.onLine && savedEmail) {
+        showToast("📡", "Offline Mode: Notes Only");
+        nav('scr-notes'); 
+        loadNotesFromStorage();
+    } else if (savedEmail) {
+        loginDone(savedEmail); 
+    } else {
+        nav('scr-1'); 
+    }
+};
 
         function changeUsername() { openModal("username", "Change Username:", document.getElementById('settings-name').innerText); }
         function changeBio() { openModal("bio", "Change Bio:", document.getElementById('settings-bio-val').innerText); }
@@ -1645,7 +1717,7 @@
             fd.append('fileToUpload', activeFileSec);
 
             currentXHRSec = new XMLHttpRequest();
-            // Using direct catbox for potentially faster speeds if corsproxy is slow
+           
             currentXHRSec.open('POST', 'https://corsproxy.io/?https://catbox.moe/user/api.php', true);
             
             currentXHRSec.onload = async function() {
@@ -1775,6 +1847,85 @@
       .then(() => console.log("SKY PWA Registered!"))
       .catch(err => console.log("Error:", err));
   }
+ 
+function saveMyNote() {
+    const noteText = document.getElementById('note-input').value.trim();
+    if (!noteText) return;
+
+    
+    const email = currentUserEmail || localStorage.getItem("sky_logged_in") || 'guest';
+    const storageKey = 'sky_notes_' + email;
+    
+    let notes = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    
+    const newNote = {
+        id: Date.now(),
+        text: noteText,
+        date: new Date().toLocaleString()
+    };
+    
+    notes.unshift(newNote); 
+    localStorage.setItem(storageKey, JSON.stringify(notes));
+    
+    document.getElementById('note-input').value = ''; 
+    loadNotesFromStorage(); 
+    showToast("📝", "Note saved offline!");
+}
+
+function loadNotesFromStorage() {
+    const area = document.getElementById('notes-display-area');
+    const email = currentUserEmail || localStorage.getItem("sky_logged_in") || 'guest';
+    const storageKey = 'sky_notes_' + email;
+    
+    const notes = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    
+  
+    if(document.getElementById('note-user-display')) {
+        document.getElementById('note-user-display').innerText = email;
+    }
+
+    area.innerHTML = '';
+    if (notes.length === 0) {
+        area.innerHTML = '<p style="color:#999; text-align:center; padding: 20px;">No notes for this account yet.</p>';
+        return;
+    }
+
+    notes.forEach(note => {
+        const div = document.createElement('div');
+        div.className = 'post-card';
+        div.style.margin = '10px 0';
+        div.innerHTML = `
+            <div style="font-size: 14px; white-space: pre-wrap; color: #333;">${note.text}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #f0f0f0; padding-top: 5px;">
+                <span style="font-size: 11px; color: #999;">${note.date}</span>
+                <span onclick="deleteNote(${note.id})" style="color: var(--error-red); cursor: pointer; font-size: 12px; font-weight: bold;">Delete</span>
+            </div>
+        `;
+        area.appendChild(div);
+    });
+}
+
+function deleteNote(id) {
+    const storageKey = 'sky_notes_' + (currentUserEmail || 'guest');
+    let notes = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    notes = notes.filter(n => n.id !== id);
+    localStorage.setItem(storageKey, JSON.stringify(notes));
+    loadNotesFromStorage();
+    showToast("🗑️", "Note removed");
+}
+
+
+
+function goBackFromNotes() {
+    if (navigator.onLine) {
+        nav('scr-welcome');
+    } else {
+        showToast("⚠️", "No Internet Connection");
+    }
+}
+
+
+
 </script>
 </body>
 </html>
